@@ -1,13 +1,11 @@
 #include <iostream>
 #include <netinet/in.h>
 #include <unistd.h>
+#include <cstring>
 #include "../../../util/util.h"
+#include "../../../util/helper.h"
 
-constexpr unsigned short int SERVER_PORT = 1800;
-constexpr unsigned short int MAX_CHAR_LEN = 1024;
-constexpr unsigned short int MAX_LOOP_COUNT = 100;
-
-int main()
+int main(int argc_, char ** argv_)
 {
   const int sock = socket(AF_INET, SOCK_STREAM, 0);
   sockaddr_in server, client;
@@ -19,22 +17,41 @@ int main()
   const unsigned int clientLen = sizeof(client);
   listen(sock, 5);
 
-  unsigned char buffer[MAX_CHAR_LEN];
-  int charReceived;
+  char buffer[MAX_CHAR_LEN];
+  ssize_t charReceived;
 
-  for (unsigned short int index = 0; index < MAX_LOOP_COUNT; ++index)
+  for (unsigned int index = 0; index < MAX_LOOP_COUNT; ++index)
   {
     std::cout << "Waiting for connection" << std::endl;
     int acceptFd = accept(sock, (struct sockaddr*) &client, (socklen_t*) &clientLen);
-    std::cout << "Got connection" << std::endl;
-    
-    while ((charReceived = read(acceptFd, buffer, MAX_CHAR_LEN)) > 0)
-    {
-      std::cout << "Received string:\n" << std::string((const char*)buffer, charReceived) << std::endl;
-      rot13(buffer, charReceived);
-      write(acceptFd, buffer, charReceived);
-    }
-  }
+    std::cout << "Got connection number: " << (index + 1) << std::endl;
 
-  return 0;
+    sendString(acceptFd, OK);
+    sendString(acceptFd, SERVER);
+
+    if ((charReceived = read(acceptFd, buffer, MAX_CHAR_LEN)) > 0)
+    {
+      // sendNormalResponse(acceptFd);
+      char* url = strstr(buffer, "HTTP");
+      if (url)
+      {
+        *url = 0;
+        url = NULL;
+      }
+      else
+      {
+        std::cout << "Error, doesn't look like a valid request!" << std::endl;
+      }
+
+      //assuming that it is a GET request
+      buffer[3] = '.';
+      const std::string filePath (((char*) buffer) + 3);
+
+      std::cout << "requested filePath: " << filePath << std::endl;
+
+      sendFileList(acceptFd, filePath);
+    }
+
+    close(acceptFd);
+  }
 }
