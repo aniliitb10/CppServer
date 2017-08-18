@@ -6,6 +6,7 @@
 #define CPPSERVER_UTIL_H
 
 #include <iostream>
+#include <unistd.h>
 
 // rotates the characters of the char array by 13 letters
 void rot13(char* str_, unsigned int charLen_);
@@ -15,6 +16,9 @@ bool sendString(int conFd_, const char* charArray_, ssize_t len_ = 0);
 
 // runs the cmd and stores output in outPut_
 void runSystemCmd(const std::string& cmd_, std::string& outPut_);
+
+// Another version of runSystemCmd, shouldn't be run when return string is long
+std::string runSystemCmd(const std::string& cmd_);
 
 // send standard/normal response to conFd_
 void sendNormalResponse(int conFd_);
@@ -33,5 +37,10 @@ bool isRegFile(const std::string& path_);
 
 // get file's content in a string
 void getFileContentInString(const std::string& path_, std::string& content_);
+
+// to get the file size
+long int getFileSize(int fd_);
+
+std::string getFullPath(const std::string& relativePath_);
 
 #endif //CPPSERVER_UTIL_H

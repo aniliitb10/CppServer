@@ -5,11 +5,12 @@
 #include "util.h"
 #include "helper.h"
 #include <cstring>
-#include <unistd.h>
 #include <array>
 #include <sstream>
 #include <regex>
 #include <fstream>
+
+static const std::string CURRENT_DIR(runSystemCmd("pwd"));
 
 void rot13(char* str_, unsigned int charLen_)
 {
@@ -90,7 +91,14 @@ void runSystemCmd(const std::string& cmd_, std::string& outPut_)
   outPut_ = os.str();
 }
 
-void tokenize(const std::string& str_, const std::regex& token_, std::string& updatedStr_)
+std::string runSystemCmd(const std::string& cmd_)
+{
+  std::string cmdOutPut;
+  runSystemCmd(cmd_, cmdOutPut);
+  return cmdOutPut;
+}
+
+void assignLinks(const std::string& str_, const std::regex& token_, std::string& updatedStr_)
 {
   // <a href=".">Link to this folder</a>
   std::ostringstream os;
@@ -104,9 +112,30 @@ void tokenize(const std::string& str_, const std::regex& token_, std::string& up
   updatedStr_ = os.str();
 }
 
+long int getFileSize(int fd_)
+{
+  long int size = lseek(fd_, 0, SEEK_END);
+  lseek(fd_, 0, SEEK_SET); // not sure if this is needed.
+  return size;
+}
+
+std::string getFullPath(const std::string& relativePath_)
+{
+  std::string fullFilePath = CURRENT_DIR;
+  fullFilePath[fullFilePath.size() - 1] = '/'; // replaced the last newline character
+
+  // patching the existing format, need to re-structure it
+  std::string tmpPath = relativePath_;
+  replaceSubString(tmpPath, "./", "");
+
+  fullFilePath += tmpPath;
+  replaceSubString(fullFilePath, " ", ""); //stripping the last space
+  return fullFilePath;
+}
+
 void getFileContentInString(const std::string& path_, std::string& content_)
 {
-  std::ifstream file(path_);
+  std::ifstream file(getFullPath(path_), std::ios::in);
 
   if (file.good())
   {
@@ -118,7 +147,7 @@ void getFileContentInString(const std::string& path_, std::string& content_)
   }
   else
   {
-    std::cout << "There was some problem in opening the file: " << path_ << std::endl;
+    std::cout << "Issue in the file: " << path_ << std::endl;
   }
 
   file.close();
@@ -127,9 +156,12 @@ void getFileContentInString(const std::string& path_, std::string& content_)
 void sendFileList(int conFd_, const std::string& path_)
 {
   std::string content;
+
   if (isDir(path_))
   {
-    runSystemCmd(std::string("cd " + path_ + " && ls -1"), content);  
+    std::string tmpContent;
+    runSystemCmd(std::string("cd " + path_ + " && ls -1"), tmpContent);
+    assignLinks(tmpContent, std::regex("\n"), content);
   }
   else if(isRegFile(path_))
   {
@@ -140,12 +172,9 @@ void sendFileList(int conFd_, const std::string& path_)
     std::cout << "Neither a dir nor a regular file at " << path_ << std::endl;
   }
 
-  std::string formattedStr;
-  tokenize(content, std::regex("\n"), formattedStr);
-
   sendString(conFd_, TINY_WEB);
   sendString(conFd_, BODY_OPEN);
-  sendString(conFd_, formattedStr.data());
+  sendString(conFd_, content.data());
   sendString(conFd_, BODY_CLOSE);
 }
 
@@ -162,5 +191,5 @@ bool isRegFile(const std::string& path_)
   std::string out;
   runSystemCmd("file " + path_, out);
   std::cout << out << std::endl;
-  return (out.find(": ASCII text") != std::string::npos);
+  return (out.find("ASCII text") != std::string::npos);
 }
