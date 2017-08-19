@@ -10,7 +10,7 @@
 // sends the char* charArry_ to conFd_
 bool sendString(int conFd_, const char *charArray_, size_t len_ = 0);
 
-// runs the cmd and stores output in outPut_
+// runs the cmd and appends output in outPut_
 // this should not be needed once the compiler starts supporting std::filesystem
 void runSystemCmd(const std::string& cmd_, std::string& outPut_);
 
