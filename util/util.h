@@ -2,32 +2,23 @@
 // Created by anil on 13/8/17.
 //
 
-#ifndef CPPSERVER_UTIL_H
-#define CPPSERVER_UTIL_H
+#pragma once
 
 #include <iostream>
 #include <unistd.h>
 
-// rotates the characters of the char array by 13 letters
-void rot13(char* str_, unsigned int charLen_);
-
 // sends the char* charArry_ to conFd_
-bool sendString(int conFd_, const char* charArray_, ssize_t len_ = 0);
+bool sendString(int conFd_, const char *charArray_, size_t len_ = 0);
 
 // runs the cmd and stores output in outPut_
+// this should not be needed once the compiler starts supporting std::filesystem
 void runSystemCmd(const std::string& cmd_, std::string& outPut_);
 
-// Another version of runSystemCmd, shouldn't be run when return string is long
-std::string runSystemCmd(const std::string& cmd_);
-
-// send standard/normal response to conFd_
-void sendNormalResponse(int conFd_);
-
-// replaces substring match_ of source_ by replacement_
+// replaces all substrings match_ of source_ by replacement_
 void replaceSubString(std::string& source_, const std::string& match_, const std::string& replacement_);
 
 // sends the list of files to conFd_
-void sendFileList(int conFd_, const std::string& path_);
+void sendContent(int conFd_, const std::string &path_);
 
 // is it a directory
 bool isDir(const std::string& path_);
@@ -38,9 +29,7 @@ bool isRegFile(const std::string& path_);
 // get file's content in a string
 void getFileContentInString(const std::string& path_, std::string& content_);
 
-// to get the file size
-long int getFileSize(int fd_);
+std::string trimString(const std::string &str_);
 
-std::string getFullPath(const std::string& relativePath_);
-
-#endif //CPPSERVER_UTIL_H
+// send msg_ to fd_
+void sendMsg(int fd_, const char *msg_);

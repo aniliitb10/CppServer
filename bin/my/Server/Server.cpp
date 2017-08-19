@@ -7,15 +7,20 @@
 
 int main(int argc_, char ** argv_)
 {
-  const int sock = socket(AF_INET, SOCK_STREAM, 0);
-  sockaddr_in server, client;
+  sockaddr_in server{}, client{};
   server.sin_family = AF_INET;
   server.sin_addr.s_addr = htonl(INADDR_ANY);
   server.sin_port = htons(SERVER_PORT);
 
+  const int sock = socket(AF_INET, SOCK_STREAM, 0);
   bind(sock, (struct sockaddr* ) &server, sizeof(server));
   const unsigned int clientLen = sizeof(client);
-  listen(sock, 5);
+
+  if (listen(sock, MAX_REQ_TO_LISTEN) == ERROR_CODE)
+  {
+    std::cerr << "There was some problem in listening on socket" << std::endl;
+    return ERROR_CODE;
+  }
 
   char buffer[MAX_CHAR_LEN];
   ssize_t charReceived;
@@ -31,25 +36,23 @@ int main(int argc_, char ** argv_)
 
     if ((charReceived = read(acceptFd, buffer, MAX_CHAR_LEN)) > 0)
     {
-      // sendNormalResponse(acceptFd);
       char* url = strstr(buffer, "HTTP");
-      if (url)
+      if (static_cast<bool>(url))
       {
         *url = 0;
-        url = NULL;
+        url = nullptr;
       }
       else
       {
-        std::cout << "Error, doesn't look like a valid request!" << std::endl;
+        std::cerr << "Error, doesn't look like a valid request!" << std::endl;
+        continue;
       }
 
-      //assuming that it is a GET request
+      // assuming that it is a GET request
       buffer[3] = '.';
       const std::string filePath (((char*) buffer) + 3);
 
-      std::cout << "requested filePath: " << filePath << std::endl;
-
-      sendFileList(acceptFd, filePath);
+      sendContent(acceptFd, trimString(filePath));
     }
 
     close(acceptFd);
